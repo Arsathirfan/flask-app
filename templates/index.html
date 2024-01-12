@@ -7,6 +7,36 @@
 </head>
 <body>
     <h1>Video Feed with Face Detection</h1>
-    <img src="{{ url_for('video_feed') }}" alt="Video Feed" style="width:100%">
+    <video id="video" width="640" height="480" autoplay></video>
+    <canvas id="canvas" width="640" height="480"></canvas>
+
+    <script>
+        const video = document.getElementById('video');
+        const canvas = document.getElementById('canvas');
+        const context = canvas.getContext('2d');
+
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then((stream) => {
+                video.srcObject = stream;
+                return new Promise((resolve) => (video.onloadedmetadata = resolve));
+            })
+            .then(() => {
+                video.play();
+
+                // Use setInterval to capture frames and send to the server
+                setInterval(() => {
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const imageData = canvas.toDataURL('image/jpeg', 0.7);
+                    fetch('/video_feed', {
+                        method: 'POST',
+                        body: JSON.stringify({ image_data: imageData }),
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                    });
+                }, 1000);  // Adjust the interval as needed
+            })
+            .catch((err) => console.error('Error accessing user camera:', err));
+    </script>
 </body>
 </html>
