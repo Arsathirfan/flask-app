@@ -41,6 +41,3 @@ def video_feed():
     except Exception as e:
         print("Error processing frame:", str(e))
         return '', 204  # No content response
-
-if __name__ == "__main__":
-    app.run(debug=True)
