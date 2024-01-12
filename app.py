@@ -1,18 +1,25 @@
-from flask import Flask, render_template, Response
+from flask import Flask, render_template, request
 import cv2
+import base64
+import numpy as np
 
 app = Flask(__name__)
 
 # Load the pre-trained Haarcascade face classifier
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
-# Open a connection to the webcam (0 represents the default camera)
-cap = cv2.VideoCapture(0)
+@app.route('/')
+def index():
+    return render_template('index.html')
 
-def generate_frames():
-    while True:
-        # Read a frame from the webcam
-        ret, frame = cap.read()
+@app.route('/video_feed', methods=['POST'])
+def video_feed():
+    try:
+        image_data = request.json['image_data']
+        # Convert base64-encoded image data to NumPy array
+        img_bytes = base64.b64decode(image_data.split(',')[1])
+        img_array = np.frombuffer(img_bytes, dtype=np.uint8)
+        frame = cv2.imdecode(img_array, cv2.IMREAD_COLOR)
 
         # Convert the frame to grayscale for face detection
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -24,21 +31,16 @@ def generate_frames():
         for (x, y, w, h) in faces:
             cv2.rectangle(frame, (x, y), (x+w, y+h), (255, 0, 0), 2)
 
-        # Convert the frame to JPEG format
-        ret, jpeg = cv2.imencode('.jpg', frame)
-        frame_bytes = jpeg.tobytes()
+        # Process the frame as needed
 
-        # Yield the frame in bytes
-        yield (b'--frame\r\n'
-               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n\r\n')
+        # Convert the processed frame back to base64 for sending to the client (optional)
+        _, encoded_frame = cv2.imencode('.jpg', frame)
+        encoded_frame_data = base64.b64encode(encoded_frame.tobytes()).decode('utf-8')
 
+        return {'image_data': encoded_frame_data}
+    except Exception as e:
+        print("Error processing frame:", str(e))
+        return '', 204  # No content response
 
-@app.route('/')
-def index():
-    return render_template('index.html')
-
-
-@app.route('/video_feed')
-def video_feed():
-    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
-
+if __name__ == "__main__":
+    app.run(debug=True)
