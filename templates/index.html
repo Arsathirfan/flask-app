@@ -3,40 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Video Feed</title>
+    <title>Video Feed with Face Detection</title>
 </head>
 <body>
     <h1>Video Feed with Face Detection</h1>
-    <video id="video" width="640" height="480" autoplay></video>
-    <canvas id="canvas" width="640" height="480"></canvas>
+    <div style="position: relative;">
+        <video id="video" width="640" height="480" autoplay style="position: absolute; top: 0; left: 0;"></video>
+        <canvas id="canvas" width="640" height="480" style="position: absolute; top: 0; left: 0;"></canvas>
+    </div>
 
     <script>
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const context = canvas.getContext('2d');
+        (function() {
+    const video = document.getElementById('video');
+    const canvas = document.getElementById('canvas');
+    const context = canvas.getContext('2d');
 
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then((stream) => {
-                video.srcObject = stream;
-                return new Promise((resolve) => (video.onloadedmetadata = resolve));
-            })
-            .then(() => {
-                video.play();
+    navigator.mediaDevices.getUserMedia({ video: true })
+        .then((stream) => {
+            video.srcObject = stream;
+            return new Promise((resolve) => (video.onloadedmetadata = resolve));
+        })
+        .then(() => {
+            video.play();
 
-                // Use setInterval to capture frames and send to the server
-                setInterval(() => {
-                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                    const imageData = canvas.toDataURL('image/jpeg', 0.7);
-                    fetch('/video_feed', {
-                        method: 'POST',
-                        body: JSON.stringify({ image_data: imageData }),
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                    });
-                }, 1000);  // Adjust the interval as needed
-            })
-            .catch((err) => console.error('Error accessing user camera:', err));
+            setInterval(() => {
+                context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const imageData = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];  // Extract the base64-encoded data
+
+                // Send the captured frame to the server
+                fetch('/video_feed', {
+                    method: 'POST',
+                    body: JSON.stringify({ image_data: imageData }),
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                })
+                .then(response => response.json())
+                .then(data => {
+                    context.clearRect(0, 0, canvas.width, canvas.height);
+
+                    const faces = data.faces || [];
+                    for (const [x, y, w, h] of faces) {
+                        context.beginPath();
+                        context.rect(x, y, w, h);
+                        context.lineWidth = 2;
+                        context.strokeStyle = 'red';
+                        context.stroke();
+                    }
+                })
+                .catch(error => console.error('Error processing frame:', error));
+            }, 1000);
+        })
+        .catch((err) => console.error('Error accessing user camera:', err));
+})();
+
+
     </script>
 </body>
 </html>
