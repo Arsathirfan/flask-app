@@ -4,60 +4,93 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Feed with Face Detection</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+
+        h1 {
+            text-align: center;
+        }
+
+        #video-container {
+            position: relative;
+            width: 640px; /* Set the desired width */
+            margin: 0 auto; /* Center the video container */
+        }
+
+        #video {
+            width: 100%;
+            height: auto;
+            object-fit: cover;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
 </head>
 <body>
     <h1>Video Feed with Face Detection</h1>
-    <div style="position: relative;">
-        <video id="video" width="640" height="480" autoplay style="position: absolute; top: 0; left: 0;"></video>
-        <canvas id="canvas" width="640" height="480" style="position: absolute; top: 0; left: 0;"></canvas>
+    <div id="video-container">
+        <video id="video" autoplay></video>
+        <canvas id="canvas"></canvas>
     </div>
 
     <script>
         (function() {
-    const video = document.getElementById('video');
-    const canvas = document.getElementById('canvas');
-    const context = canvas.getContext('2d');
+            const video = document.getElementById('video');
+            const canvas = document.getElementById('canvas');
+            const context = canvas.getContext('2d');
 
-    navigator.mediaDevices.getUserMedia({ video: true })
-        .then((stream) => {
-            video.srcObject = stream;
-            return new Promise((resolve) => (video.onloadedmetadata = resolve));
-        })
-        .then(() => {
-            video.play();
+            navigator.mediaDevices.getUserMedia({
+                video: {
+                    facingMode: 'user', // or 'environment' for rear camera
+                    width: { ideal: 640 },
+                    height: { ideal: 480 }
+                }
+            })
+            .then((stream) => {
+                video.srcObject = stream;
+                return new Promise((resolve) => (video.onloadedmetadata = resolve));
+            })
+            .then(() => {
+                video.play();
 
-            setInterval(() => {
-                context.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const imageData = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];  // Extract the base64-encoded data
+                setInterval(() => {
+                    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+                    const imageData = canvas.toDataURL('image/jpeg', 0.7).split(',')[1];
 
-                // Send the captured frame to the server
-                fetch('/video_feed', {
-                    method: 'POST',
-                    body: JSON.stringify({ image_data: imageData }),
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                })
-                .then(response => response.json())
-                .then(data => {
-                    context.clearRect(0, 0, canvas.width, canvas.height);
+                    fetch('/video_feed', {
+                        method: 'POST',
+                        body: JSON.stringify({ image_data: imageData }),
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        context.clearRect(0, 0, canvas.width, canvas.height);
 
-                    const faces = data.faces || [];
-                    for (const [x, y, w, h] of faces) {
-                        context.beginPath();
-                        context.rect(x, y, w, h);
-                        context.lineWidth = 2;
-                        context.strokeStyle = 'red';
-                        context.stroke();
-                    }
-                })
-                .catch(error => console.error('Error processing frame:', error));
-            }, 500);
-        })
-        .catch((err) => console.error('Error accessing user camera:', err));
-})();
-
-
+                        const faces = data.faces || [];
+                        for (const [x, y, w, h] of faces) {
+                            context.beginPath();
+                            context.rect(x, y, w, h);
+                            context.lineWidth = 2;
+                            context.strokeStyle = 'red';
+                            context.stroke();
+                        }
+                    })
+                    .catch(error => console.error('Error processing frame:', error));
+                }, 250);
+            })
+            .catch((err) => console.error('Error accessing user camera:', err));
+        })();
     </script>
 </body>
 </html>
