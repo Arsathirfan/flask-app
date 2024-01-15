@@ -57,5 +57,3 @@ def download_zip():
         return '', 204  # No content response
 
 
-if __name__ == "__main__":
-    app.run(debug=True)
