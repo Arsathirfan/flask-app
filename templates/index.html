@@ -3,7 +3,7 @@
 <head>
     <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3470151690941500"
      crossorigin="anonymous"></script>
-     <meta charset="UTF-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Video Feed with Face Detection</title>
     <style>
@@ -110,32 +110,19 @@
     <section id="contentSection">
         <p>It is a Flask App that detects live faces via the camera, as demonstrated above.</p>
         <p>This project detects faces in the live client's camera.</p>
-        <button id="download-button">Download Project</button>
+        <button id="download-button" onclick="downloadZip()">Download Project</button>
     </section>
 
     <script>
+    // Function to download the zip file
+    function downloadZip() {
+        window.location.href = '/downloadZip';
+    }
 
     (function() {
         const video = document.getElementById('video');
         const canvas = document.getElementById('canvas');
         const context = canvas.getContext('2d');
-
-        // Function to download the zip file
-        function downloadZip() {
-            fetch('/downloadZip')
-                .then(response => response.blob())
-                .then(blob => {
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'flask_face_detection_app.zip'; // Set your desired file name here
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                })
-                .catch(error => console.error('Error downloading zip:', error));
-        }
 
         navigator.mediaDevices.getUserMedia({
             video: {
@@ -179,12 +166,9 @@
             }, 250);
         })
         .catch((err) => console.error('Error accessing user camera:', err));
-
-        // Call downloadZip function when the download button is clicked
-        const downloadButton = document.getElementById('download-button');
-        downloadButton.addEventListener('click', downloadZip);
     })();
 </script>
 
 </body>
 </html>
+
