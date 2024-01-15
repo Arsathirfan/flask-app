@@ -1,19 +1,19 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_file
 import cv2
 import base64
 import numpy as np
+import io
 
 app = Flask(__name__)
 
 # Load the pre-trained Haarcascade face classifier
 face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
 
+
 @app.route('/')
 def index():
     return render_template('index.html')
 
-@app.route('/video_feed', methods=['POST'])
-@app.route('/video_feed', methods=['POST'])
 
 @app.route('/video_feed', methods=['POST'])
 def video_feed():
@@ -46,4 +46,16 @@ def video_feed():
         return '', 204  # No content response
 
 
+@app.route('/downloadZip')
+def download_zip():
+    try:
+        # Assuming the zip file is in the same directory as your app.py
+        zip_file_path = 'flask_face_detection_app.zip'
+        return send_file(zip_file_path, as_attachment=True)
+    except Exception as e:
+        print("Error downloading zip:", str(e))
+        return '', 204  # No content response
 
+
+if __name__ == "__main__":
+    app.run(debug=True)
